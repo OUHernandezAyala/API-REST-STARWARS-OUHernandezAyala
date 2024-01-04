@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Favorites
+from models import db, User, Favorites, People, Planets
 #from models import Person
 
 app = Flask(__name__)
@@ -64,6 +64,68 @@ def handle_user():
             user_serialized.append(user.serialize())
         print(user_serialized)
         return jsonify(user_serialized), 200
+
+@app.route('/people', methods=['POST','GET'])
+def handle_people():
+    data = request.json
+    revision_data = [data.get("name")]
+    if request.method == 'POST':
+        people_exist = People.query.filter_by(name=data["name"]).one_or_none()
+        if people_exist:
+            return jsonify({"message":"Character alredy exist"}), 400
+        print("Hola",people_exist)
+        if None in revision_data:
+            return jsonify({"message":"name required"}), 400
+        #VERIFICAR QUE EL CORREO NO EXITA EN LA BASE DE DATOS
+        new_people = People(name=data["name"], birth_year = data["birth_year"], gender = data["gender"], planet_origin = data["planet_origin"], description = data["description"], url_img_people = data["url_img_people"], species = data["species"] )
+        try:
+            db.session.add(new_people)
+            db.session.commit()
+        except Exception as error:
+            print(error)
+            return jsonify({"message":"Server error, try again"}), 400
+        print(new_people)
+        return jsonify(data), 201
+    if request.method == 'GET':
+        all_people = People.query.all()
+        people_serialized = []
+        for people in all_people:
+            people_serialized.append(people.serialize())
+        print(people_serialized)
+        return jsonify(people_serialized), 200
+    
+
+
+@app.route('/user/<int:user_id>/favorites', methods=['POST','GET'])
+def handle_favorites(user_id):
+     user = User.query.get(user_id)
+     if user is None:
+         return jsonify({ "message": "User dont exist"}), 404
+     data = request.json
+     revision_data = [data.get("type")]
+     favorite_exist_people = Favorites.query.filter_by(user= data["user_id"], people_id = data["people_id"]).one_or_none()
+     favorite_exist_planet = Favorites.query.filter_by(user= data["user_id"], planets_id = data["planets_id"]).one_or_none()
+     if request.method == 'POST':
+        if favorite_exist_planet:
+            return jsonify({"message":"Planet Favorite alredy exist"}), 400
+            print("Hola",favorite_exist_planet)
+        if favorite_exist_people:
+            return jsonify({"message":"People Favorite alredy exist"}), 400
+            print("Hola",favorite_exist_people)
+        if None in revision_data:
+            return jsonify({"message":"Type is required"}), 400
+        #VERIFICAR QUE EL FAVORITO NO EXITA EN LA BASE DE DATOS
+        new_favorite = Favorites(type=type)
+        try:
+            print('hola', new_favorite)
+        except Exception as error:
+            print(error)
+            return jsonify({"message":"Server error, try again"}), 400
+        print(new_favorite)
+        return jsonify(data), 201
+     if request.method == 'GET':
+        all_Favorites = Favorites.query.all()
+        
         
 
 # this only runs if `$ python src/app.py` is executed
