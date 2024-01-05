@@ -61,11 +61,22 @@ class People(db.Model): #PARENT
 class Planets(db.Model): #PARENT 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
-    type = db.Column(db.String(10))
+    type = db.Column(db.String(150))
     terrain  = db.Column(db.String(100))
     diameter  = db.Column(db.String(100))
-    description = db.Column(db.String(100))
+    description = db.Column(db.String(200))
     url_img_planet = db.Column(db.String(300))
     favorites = relationship("Favorites", back_populates="planets")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "type": self.type,
+            "terrain": self.terrain,
+            "diameter": self.diameter,
+            "description": self.description,
+            "url_img_planet": self.url_img_planet,
+        }
 
     

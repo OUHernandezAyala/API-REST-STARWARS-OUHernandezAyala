@@ -77,7 +77,13 @@ def handle_people():
         if None in revision_data:
             return jsonify({"message":"name required"}), 400
         #VERIFICAR QUE EL CORREO NO EXITA EN LA BASE DE DATOS
-        new_people = People(name=data["name"], birth_year = data["birth_year"], gender = data["gender"], planet_origin = data["planet_origin"], description = data["description"], url_img_people = data["url_img_people"], species = data["species"] )
+        new_people = People(name=data["name"], 
+                            birth_year = data["birth_year"], 
+                            gender = data["gender"], 
+                            planet_origin = data["planet_origin"], 
+                            description = data["description"], 
+                            url_img_people = data["url_img_people"], 
+                            species = data["species"] )
         try:
             db.session.add(new_people)
             db.session.commit()
@@ -94,6 +100,41 @@ def handle_people():
         print(people_serialized)
         return jsonify(people_serialized), 200
     
+
+@app.route('/planets', methods=['POST','GET'])
+def handle_planets():
+    data = request.json
+    revision_data = [data.get("name")]
+    if request.method == 'POST':
+        planet_exist = Planets.query.filter_by(name=data["name"]).one_or_none()
+        if planet_exist:
+            return jsonify({"message":"The planet alredy exist"}), 400
+        print("Hola",planet_exist)
+        if None in revision_data:
+            return jsonify({"message":"name required"}), 400
+        #VERIFICAR QUE EL CORREO NO EXITA EN LA BASE DE DATOS
+        new_planet = new_planet = Planets(name=data["name"],
+                                          type=data["type"],  
+                                          terrain=data["terrain"],  
+                                          diameter=data["diameter"],  
+                                          description=data["description"],
+                                          url_img_planet=data["url_img_planet"],  
+                                        )
+        try:
+            db.session.add(new_planet)
+            db.session.commit()
+        except Exception as error:
+            print(error)
+            return jsonify({"message":"Server error, try again"}), 400
+        print(new_planet)
+        return jsonify(data), 201
+    if request.method == 'GET':
+        all_planets = Planets.query.all()
+        planets_serialized = []
+        for planet in all_planets:
+            planets_serialized.append(planet.serialize())
+        print(planets_serialized)
+        return jsonify(planets_serialized), 200
 
 
 @app.route('/user/<int:user_id>/favorites', methods=['POST','GET'])
