@@ -113,7 +113,7 @@ def handle_planets():
         if None in revision_data:
             return jsonify({"message":"name required"}), 400
         #VERIFICAR QUE EL CORREO NO EXITA EN LA BASE DE DATOS
-        new_planet = new_planet = Planets(name=data["name"],
+        new_planet = Planets(name=data["name"],
                                           type=data["type"],  
                                           terrain=data["terrain"],  
                                           diameter=data["diameter"],  
@@ -136,40 +136,109 @@ def handle_planets():
         print(planets_serialized)
         return jsonify(planets_serialized), 200
 
+@app.route('/user/<int:user_id>/favorites/<string:type>', methods=['POST', 'GET', 'DELETE'])
+def handle_favorites_for_user(user_id, type):
+    user = User.query.get(user_id)
+    if user is None:
+        return jsonify({"message": "User doesn't exist"}), 404
 
-@app.route('/user/<int:user_id>/favorites', methods=['POST','GET'])
-def handle_favorites(user_id):
-     user = User.query.get(user_id)
-     if user is None:
-         return jsonify({ "message": "User dont exist"}), 404
-     data = request.json
-     revision_data = [data.get("type")]
-     favorite_exist_people = Favorites.query.filter_by(user= data["user_id"], people_id = data["people_id"]).one_or_none()
-     favorite_exist_planet = Favorites.query.filter_by(user= data["user_id"], planets_id = data["planets_id"]).one_or_none()
-     if request.method == 'POST':
-        if favorite_exist_planet:
-            return jsonify({"message":"Planet Favorite alredy exist"}), 400
-            print("Hola",favorite_exist_planet)
-        if favorite_exist_people:
-            return jsonify({"message":"People Favorite alredy exist"}), 400
-            print("Hola",favorite_exist_people)
-        if None in revision_data:
-            return jsonify({"message":"Type is required"}), 400
-        #VERIFICAR QUE EL FAVORITO NO EXITA EN LA BASE DE DATOS
-        new_favorite = Favorites(type=type)
+    if request.method == 'POST':
+        data = request.json
+        if not ("type" in data and ("people_id" in data or "planets_id" in data)):
+            return jsonify({"message": "Missing required fields"}), 400
+        valid_types = ["people", "planets"]
+        if type not in valid_types:
+            return jsonify({"message": "Invalid 'type'"}), 400
+
+        favorite_exist_people = None
+        favorite_exist_planet = None
+
+        if "people_id" in data:
+            favorite_exist_people = Favorites.query.filter_by(user_id=user_id, people_id=data["people_id"]).one_or_none()
+
+        if "planets_id" in data:
+            favorite_exist_planet = Favorites.query.filter_by(user_id=user_id, planets_id=data["planets_id"]).one_or_none()
+
+        print("favorite_exist_people:", favorite_exist_people)
+        print("favorite_exist_planet:", favorite_exist_planet)
+
+
+        if favorite_exist_people or favorite_exist_planet:
+            return jsonify({"message": "Favorite already exists"}), 400
+
+        new_favorite = Favorites(
+            user_id=user_id,
+            type=type,
+            people_id=data.get("people_id"),  
+            planets_id=data.get("planets_id") 
+        )
+
         try:
-            print('hola', new_favorite)
+            db.session.add(new_favorite)
+            db.session.commit()
+            return jsonify(new_favorite.serialize()), 201
         except Exception as error:
             print(error)
-            return jsonify({"message":"Server error, try again"}), 400
-        print(new_favorite)
-        return jsonify(data), 201
-     if request.method == 'GET':
-        all_Favorites = Favorites.query.all()
-        
-        
+            db.session.rollback()
+            return jsonify({"message": "Server error, try again"}), 500
 
-# this only runs if `$ python src/app.py` is executed
-if __name__ == '__main__':
-    PORT = int(os.environ.get('PORT', 3000))
-    app.run(host='0.0.0.0', port=PORT, debug=False)
+    elif request.method == 'GET':
+        all_favorites = Favorites.query.filter_by(user_id=user_id).all()
+        favorites_serialized = [favorite.serialize() for favorite in all_favorites]
+        return jsonify(favorites_serialized), 200
+    
+    elif request.method == 'DELETE':
+         data = request.json
+         if not ("type" in data and ("people_id" in data or "planets_id" in data)):
+            return jsonify({"message": "Missing required fields"}), 400
+         valid_types = ["people", "planets"]
+         if type not in valid_types:
+                return jsonify({"message": "Invalid 'type'"}), 400
+         
+         favorite_exist_people = None
+         favorite_exist_planet = None
+         if "people_id" in data:
+                favorite_exist_people = Favorites.query.filter_by(user_id=user_id, people_id=data["people_id"]).one_or_none()
+         if "planets_id" in data:
+                favorite_exist_planet = Favorites.query.filter_by(user_id=user_id, planets_id=data["planets_id"]).one_or_none()
+
+         if not (favorite_exist_people or favorite_exist_planet):
+                return jsonify({"message": "Favorite does not exist"}), 404
+
+         try:
+            db.session.delete(favorite_exist_people or favorite_exist_planet)
+            db.session.commit()
+            return jsonify({"message": "Favorite deleted successfully"}), 200
+         except Exception as error:
+            print(error)
+            db.session.rollback()
+            return jsonify({"message": "Server error, try again"}), 500
+
+
+@app.route('/<string:type>/<int:id>', methods=['POST', 'GET'])
+def handle_one_type(type,id):
+    if request.method == 'GET':
+        if type == "planets":
+            planet = Planets.query.filter_by(id=id).first()
+            if planet:
+                try:
+                    return jsonify(planet.serialize()), 200
+                except Exception as error:
+                    print(error)
+                    return jsonify({"message": "Server error, try again"}), 500
+            else:
+                return jsonify({"message": "People not found"}), 404
+        elif type == "people":
+            people = People.query.filter_by(id=id).first()
+            if people:
+                try:
+                    return jsonify(people.serialize()), 200
+                except Exception as error:
+                    print(error)
+                    return jsonify({"message": "Server error, try again"}), 500
+            else:
+                return jsonify({"message": "People not found"}), 404
+    else:
+        return jsonify({"message": "Method not allowed"}), 400
+
+

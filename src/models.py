@@ -33,6 +33,17 @@ class Favorites(db.Model): #CHILD
 
     def __repr__(self):
         return f'<Favorites {self.id}, Type: {self.type}>'
+    def serialize(self):
+        return {
+            "id" : self.id,
+            "user_id" : self.user_id,
+            "type" : self.type,
+            "people_id" : self.people_id,
+            "planets_id" : self.planets_id
+        }
+
+
+
 
 class People(db.Model): #PARENT 
     id = db.Column(db.Integer, primary_key=True)
