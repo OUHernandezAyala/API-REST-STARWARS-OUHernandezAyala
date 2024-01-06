@@ -215,7 +215,7 @@ def handle_favorites_for_user(user_id, type):
             return jsonify({"message": "Server error, try again"}), 500
 
 
-@app.route('/<string:type>/<int:id>', methods=['POST', 'GET'])
+@app.route('/<string:type>/<int:id>', methods=['GET'])
 def handle_one_type(type,id):
     if request.method == 'GET':
         if type == "planets":
@@ -227,7 +227,7 @@ def handle_one_type(type,id):
                     print(error)
                     return jsonify({"message": "Server error, try again"}), 500
             else:
-                return jsonify({"message": "People not found"}), 404
+                return jsonify({"message": "Planet not found"}), 404
         elif type == "people":
             people = People.query.filter_by(id=id).first()
             if people:
