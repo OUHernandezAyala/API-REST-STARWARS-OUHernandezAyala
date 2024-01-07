@@ -38,9 +38,9 @@ def sitemap():
 
 @app.route('/user', methods=['POST','GET'])
 def handle_user():
-    data = request.json
-    revision_data = [data.get("email"), data.get("password"), data.get("name")]
     if request.method == 'POST':
+        data = request.json
+        revision_data = [data.get("email"), data.get("password"), data.get("name")]
         user_exist = User.query.filter_by(email=data["email"]).one_or_none()
         if user_exist:
             return jsonify({"message":"email alredy exist"}), 400
@@ -64,12 +64,14 @@ def handle_user():
             user_serialized.append(user.serialize())
         print(user_serialized)
         return jsonify(user_serialized), 200
+    else:
+        return jsonify({"message": "Method not allowed"}), 400
 
 @app.route('/people', methods=['POST','GET'])
 def handle_people():
-    data = request.json
-    revision_data = [data.get("name")]
     if request.method == 'POST':
+        data = request.json
+        revision_data = [data.get("name")]
         people_exist = People.query.filter_by(name=data["name"]).one_or_none()
         if people_exist:
             return jsonify({"message":"Character alredy exist"}), 400
@@ -99,13 +101,15 @@ def handle_people():
             people_serialized.append(people.serialize())
         print(people_serialized)
         return jsonify(people_serialized), 200
+    else:
+        return jsonify({"message": "Method not allowed"}), 400
     
 
 @app.route('/planets', methods=['POST','GET'])
 def handle_planets():
-    data = request.json
-    revision_data = [data.get("name")]
     if request.method == 'POST':
+        data = request.json
+        revision_data = [data.get("name")]
         planet_exist = Planets.query.filter_by(name=data["name"]).one_or_none()
         if planet_exist:
             return jsonify({"message":"The planet alredy exist"}), 400
@@ -135,6 +139,8 @@ def handle_planets():
             planets_serialized.append(planet.serialize())
         print(planets_serialized)
         return jsonify(planets_serialized), 200
+    else:
+        return jsonify({"message": "Method not allowed"}), 400
 
 @app.route('/user/<int:user_id>/favorites/<string:type>', methods=['POST', 'GET', 'DELETE'])
 def handle_favorites_for_user(user_id, type):
@@ -213,6 +219,8 @@ def handle_favorites_for_user(user_id, type):
             print(error)
             db.session.rollback()
             return jsonify({"message": "Server error, try again"}), 500
+    else:
+        return jsonify({"message": "Method not allowed"}), 400
 
 
 @app.route('/<string:type>/<int:id>', methods=['GET'])
@@ -240,5 +248,17 @@ def handle_one_type(type,id):
                 return jsonify({"message": "People not found"}), 404
     else:
         return jsonify({"message": "Method not allowed"}), 400
+
+@app.route('/user/favorites', methods=['GET'])
+def handle_favorites():
+    if request.method == 'GET':
+        all_favorites = Favorites.query.all()
+        favorites_serialized = []
+        for favorite in all_favorites:
+            favorites_serialized.append(favorite.serialize())
+        return jsonify(favorites_serialized), 200
+    else:
+        return jsonify({"message": "Method not allowed"}), 400    
+
 
 
